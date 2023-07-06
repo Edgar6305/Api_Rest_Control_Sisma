@@ -107,32 +107,34 @@ router.post('/movimiento', ensureToken, async (req, res) => {
 
 router.post('/avisos', ensureToken, async (req, res) => {
     var newData = req.token.user
+    console.log(req.body.empresa) // Aqui Pasa el Usuario que hace la peticio
     try {
         await sql.connect(config)
-        const xSql = `Select * From Avisos WHERE Empresa='${newData.empresa}' AND CodigoAplicacion='${newData.aplicacion}' AND Estado='AC'`
-        //const xSql =`Select * From Avisos WHERE Empresa='${newData.empresa}' AND Estado='AC'`
-        var result = await sql.query(xSql)
+        const xSql =`Select Tipo, Aviso, NombreAplicacion, Permanencia From Avisos WHERE Empresa='${newData.empresa}' AND CodigoAplicacion='${newData.aplicacion}' AND Estado='AC'`
+        var result = await sql.query (xSql)
         //console.log(result.recordset)
-        if (result.rowsAffected[0] == 0) {
+        if (result.rowsAffected[0] == 0){
+            var botMessage ="NO hay Avisos para " + " Empresa " + newData.empresa + " Usuario " +  req.body.empresa
+            bot.sendBot(bot.idChatBaseUno, botMessage)
             res.status(500).json({ "status": "No data" })
-        } else {
-            const Persiste = result.recordset[0].Permanencia
-            const myTipo = result.recordset[0].Tipo
-            if (Persiste == 0) {
-                const xSql = `Update Avisos Set Estado='IN' WHERE Empresa='${newData.empresa}' AND CodigoAplicacion='${newData.aplicacion}' AND Tipo='${myTipo}'`
-                var resultUP = await sql.query(xSql)
+        }else{
+            const Persiste=result.recordset[0].Permanencia
+            const myTipo=result.recordset[0].Tipo
+            if(Persiste == 0) {
+                const xSql =`Update Avisos Set Estado='IN' WHERE Empresa='${newData.empresa}' AND CodigoAplicacion='${newData.aplicacion}' AND Tipo='${myTipo}'`
+                var resultUP = await sql.query (xSql)
             }
-            res.status(200).json({ "status": "Succes", "Persistencia": "IN", "aviso": result.recordset })
-            //var botMessage ="Se envió Token Solicitado"
-            //bot.sendBot(bot.idChatBaseUno, botMessage)
-        }
-        return
+            res.status(200).json({ "status": "Succes", "Persistencia":"IN","aviso": result.recordset})
+            var botMessage ="Aviso Solicitado " + myTipo + " Empresa" + newData.empresa + " Usuario " +  req.body.empresa
+            bot.sendBot(bot.idChatBaseUno, botMessage)
+        }    
+        return        
     } catch (err) {
-        var botMessage = "Error Descarga  " + err.message
+        var botMessage ="Error Descarga  " + err.messages
         bot.sendBot(bot.idChatBaseUno, botMessage)
-        const response = { status: err }
-        res.status(401).json({ "status": "FAILED", "error": err.message })
-    }
+        const response = { status: err}
+        res.status(401).json({ "status": "FAILED", "error" : err.message})
+    }    
 })
 
 router.post('/usuarios', ensureToken, async (req, res) => {
@@ -169,10 +171,10 @@ function ensureToken(req, res, next) {
             res.status(401).json({ "status": "FAILED", "error": err })
             //console.log(req.token)
         } else {
-            var botMessage = "Consulta Token Empresa " + data.user.empresa + " Aplicación " + data.user.aplicacion + " Usuario " + req.body.usuario
-            bot.sendBot(bot.idChatBaseUno, botMessage)
-            req.token = data
+            //var botMessage = "Consulta Token Empresa " + data.user.empresa + " Aplicación " + data.user.aplicacion + " Usuario " + req.body.usuario
+            //bot.sendBot(bot.idChatBaseUno, botMessage)
             //console.log(req.token)
+            req.token = data
             next()
         }
     })
